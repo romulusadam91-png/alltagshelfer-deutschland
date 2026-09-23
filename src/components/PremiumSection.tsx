@@ -168,8 +168,8 @@ export const PremiumSection: React.FC<PremiumSectionProps> = ({
 
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
             {language === 'ro'
-              ? 'Formulări juridice avansate, clauze conforme cu legislația BGB & TKG și documente fără filigran, gata de semnat și trimis prin poștă sau e-mail.'
-              : 'Rechtssichere Musterschreiben für die wichtigsten bürokratischen Angelegenheiten in Deutschland, ohne Wasserzeichen und sofort einsatzbereit.'}
+              ? 'Șabloane practice pentru situații administrative uzuale și documente fără filigran, gata de completat și descărcat în format PDF.'
+              : 'Praktische Vorlagen für alltägliche Verwaltungssituationen und Dokumente ohne Wasserzeichen, sofort ausfüllbar und als PDF herunterladbar.'}
           </p>
         </div>
 
@@ -253,7 +253,7 @@ export const PremiumSection: React.FC<PremiumSectionProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{language === 'ro' ? 'Formulări juridice verificate' : 'Rechtssichere Klauseln'}</span>
+            <span>{language === 'ro' ? 'Formulări practice verificate' : 'Geprüfte Vorlagenmuster'}</span>
           </div>
         </div>
 

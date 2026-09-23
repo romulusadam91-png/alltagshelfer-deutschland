@@ -105,8 +105,8 @@ export const PremiumComingSoonModal: React.FC<PremiumComingSoonModalProps> = ({
           </div>
           <p>
             {language === 'ro'
-              ? 'Lucrăm cu avocați și specialiști în birocrație germană pentru a definitiva toate modelele din pachetul Premium de 4,99 €. În acest moment nu se percepe nicio taxă și nu este necesar niciun card.'
-              : 'Wir finalisieren aktuell die rechtssicheren Premium-Vorlagen für 4,99 €. Aktuell ist kein Zahlungssystem aktiv und es fallen keine Kosten an.'}
+              ? 'Modelele sunt concepute ca șabloane practice pentru situații administrative uzuale. Verifică întotdeauna contractul și cerințele instituției înainte de trimitere.'
+              : 'Die Vorlagen sind als praktische Muster für gängige Verwaltungssituationen konzipiert. Bitte prüfen Sie stets Ihren Vertrag und die Vorgaben der jeweiligen Stelle vor dem Absenden.'}
           </p>
           <p className="text-emerald-700 font-semibold pt-1">
             {language === 'ro'
