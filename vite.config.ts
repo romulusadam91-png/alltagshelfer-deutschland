@@ -4,11 +4,15 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const basePath = process.env.BASE_PATH || '/alltagshelfer-deutschland/';
+  const base = basePath.endsWith('/') ? basePath : `${basePath}/`;
+
   return {
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname || __dirname, '.'),
       },
     },
     server: {

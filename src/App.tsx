@@ -19,13 +19,21 @@ import { ShieldCheck, Heart, FileText, Send, Sparkles } from 'lucide-react';
 export default function App() {
   // Language state (default Romanian as requested for Romanian speakers in Germany)
   const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem('alltagshelfer_lang');
-    return saved === 'de' ? 'de' : 'ro';
+    try {
+      const saved = localStorage.getItem('alltagshelfer_lang');
+      return saved === 'de' ? 'de' : 'ro';
+    } catch {
+      return 'ro';
+    }
   });
 
   // Premium state
   const [isPremium, setIsPremium] = useState<boolean>(() => {
-    return localStorage.getItem('alltagshelfer_is_premium') === 'true';
+    try {
+      return localStorage.getItem('alltagshelfer_is_premium') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   // Saved sender profile
@@ -60,20 +68,26 @@ export default function App() {
   // Persist language change
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('alltagshelfer_lang', lang);
+    try {
+      localStorage.setItem('alltagshelfer_lang', lang);
+    } catch {}
   };
 
   // Toggle Premium
   const handleTogglePremium = () => {
     const next = !isPremium;
     setIsPremium(next);
-    localStorage.setItem('alltagshelfer_is_premium', String(next));
+    try {
+      localStorage.setItem('alltagshelfer_is_premium', String(next));
+    } catch {}
   };
 
   // Save sender profile
   const handleSaveSender = (profile: SenderProfile) => {
     setSavedSender(profile);
-    localStorage.setItem('alltagshelfer_sender_profile', JSON.stringify(profile));
+    try {
+      localStorage.setItem('alltagshelfer_sender_profile', JSON.stringify(profile));
+    } catch {}
   };
 
   // Navigation handlers
