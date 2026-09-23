@@ -1,6 +1,7 @@
 import React from 'react';
 import { Category, CategoryKey, Language } from '../types';
 import { CATEGORIES } from '../data/categories';
+import { PremiumSection } from './PremiumSection';
 import {
   FileX,
   Home,
@@ -20,6 +21,7 @@ interface CategoryListProps {
   language: Language;
   onSelectCategory: (catId: CategoryKey) => void;
   onOpenTips: () => void;
+  onOpenPremiumComingSoon: (categoryName?: string) => void;
 }
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
@@ -38,6 +40,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   language,
   onSelectCategory,
   onOpenTips,
+  onOpenPremiumComingSoon,
 }) => {
   return (
     <div className="space-y-6">
@@ -141,6 +144,12 @@ export const CategoryList: React.FC<CategoryListProps> = ({
           );
         })}
       </div>
+
+      {/* Professional Premium Section */}
+      <PremiumSection
+        language={language}
+        onOpenComingSoon={onOpenPremiumComingSoon}
+      />
     </div>
   );
 };

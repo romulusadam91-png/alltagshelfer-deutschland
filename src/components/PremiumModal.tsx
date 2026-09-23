@@ -37,13 +37,13 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({
             <Crown className="w-6 h-6 fill-white" />
           </div>
           <div>
-            <div className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 uppercase tracking-wider">
-              <span>{language === 'ro' ? 'AlltagsHelfer PRO' : 'AlltagsHelfer PRO'}</span>
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+              <span>AlltagsHelfer Premium · 4,99 €</span>
             </div>
             <h2 className="font-extrabold text-slate-900 text-lg sm:text-xl">
               {language === 'ro'
-                ? 'Opțiuni Gratuite vs. Premium'
-                : 'Kostenlose vs. Premium-Option'}
+                ? 'Modele utile pentru viața de zi cu zi în Germania'
+                : 'Nützliche Vorlagen für den Alltag in Deutschland'}
             </h2>
           </div>
         </div>

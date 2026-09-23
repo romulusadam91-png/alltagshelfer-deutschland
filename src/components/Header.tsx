@@ -92,23 +92,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Free vs Premium Badge/Trigger */}
           <button
             onClick={onOpenPremiumModal}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs ${
-              isPremium
-                ? 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
-            }`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 cursor-pointer border border-amber-400"
+            title={language === 'ro' ? 'AlltagsHelfer Premium – 4,99 €' : 'AlltagsHelfer Premium – 4,99 €'}
           >
-            {isPremium ? (
-              <>
-                <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-                <span>PREMIUM</span>
-              </>
-            ) : (
-              <>
-                <Crown className="w-3.5 h-3.5 text-amber-300" />
-                <span>{language === 'ro' ? 'Deblochează PRO' : 'PRO freischalten'}</span>
-              </>
-            )}
+            <Crown className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
+            <span>⭐ Premium 4,99 €</span>
           </button>
         </div>
       </div>

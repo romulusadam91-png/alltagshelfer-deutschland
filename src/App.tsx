@@ -13,6 +13,7 @@ import { LetterWizard } from './components/LetterWizard';
 import { LetterPreview } from './components/LetterPreview';
 import { SenderProfileModal } from './components/SenderProfileModal';
 import { PremiumModal } from './components/PremiumModal';
+import { PremiumComingSoonModal } from './components/PremiumComingSoonModal';
 import { TipsModal } from './components/TipsModal';
 import { ShieldCheck, Heart, FileText, Send, Sparkles } from 'lucide-react';
 
@@ -64,6 +65,13 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
+  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(false);
+  const [selectedPremiumCategoryName, setSelectedPremiumCategoryName] = useState<string | undefined>(undefined);
+
+  const handleOpenComingSoon = (categoryName?: string) => {
+    setSelectedPremiumCategoryName(categoryName);
+    setIsComingSoonModalOpen(true);
+  };
 
   // Persist language change
   const handleLanguageChange = (lang: Language) => {
@@ -123,7 +131,7 @@ export default function App() {
         language={language}
         onLanguageChange={handleLanguageChange}
         isPremium={isPremium}
-        onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
+        onOpenPremiumModal={() => handleOpenComingSoon()}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onResetToHome={handleResetToHome}
       />
@@ -135,6 +143,7 @@ export default function App() {
             language={language}
             onSelectCategory={handleSelectCategory}
             onOpenTips={() => setIsTipsModalOpen(true)}
+            onOpenPremiumComingSoon={handleOpenComingSoon}
           />
         )}
 
@@ -145,7 +154,7 @@ export default function App() {
             isPremium={isPremium}
             onSelectTemplate={handleSelectTemplate}
             onBack={() => setCurrentView('categories')}
-            onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
+            onOpenPremiumModal={() => handleOpenComingSoon()}
           />
         )}
 
@@ -167,7 +176,7 @@ export default function App() {
             language={language}
             isPremium={isPremium}
             onBackToEdit={() => setCurrentView('wizard')}
-            onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
+            onOpenPremiumModal={() => handleOpenComingSoon()}
           />
         )}
       </main>
@@ -202,10 +211,10 @@ export default function App() {
             </button>
             <span>•</span>
             <button
-              onClick={() => setIsPremiumModalOpen(true)}
+              onClick={() => handleOpenComingSoon()}
               className="text-amber-600 hover:text-amber-700 font-bold cursor-pointer"
             >
-              {isPremium ? 'PRO Aktiv' : 'PRO Option'}
+              {language === 'ro' ? '⭐ Premium 4,99 €' : '⭐ Premium 4,99 €'}
             </button>
           </div>
         </div>
@@ -226,6 +235,13 @@ export default function App() {
         language={language}
         isPremium={isPremium}
         onTogglePremium={handleTogglePremium}
+      />
+
+      <PremiumComingSoonModal
+        isOpen={isComingSoonModalOpen}
+        onClose={() => setIsComingSoonModalOpen(false)}
+        language={language}
+        selectedCategoryName={selectedPremiumCategoryName}
       />
 
       <TipsModal
