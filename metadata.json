@@ -1,6 +1,6 @@
 {
-  "name": "AlltagsHelfer Deutschland",
-  "description": "Generator simplu și rapid de scrisori oficiale germane pentru românii din Germania / Schneller Generator für offizielle Briefe und Dokumente in Deutschland.",
+  "name": "Muse – Private AI Photo Journal",
+  "description": "A private photo journal where you transform personal photos into stylized AI artwork with custom prompts, organized in a chronological timeline.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

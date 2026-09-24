@@ -1,86 +1,48 @@
-export type Language = 'ro' | 'de';
+export type AspectRatio = '4:3' | '1:1' | '16:9' | '3:4';
 
-export type CategoryKey =
-  | 'kuendigung'
-  | 'vermieter'
-  | 'krankenkasse'
-  | 'kita_schule'
-  | 'internet_handy'
-  | 'arbeitgeber'
-  | 'behoerden'
-  | 'bank'
-  | 'sonstige';
-
-export interface Category {
-  id: CategoryKey;
-  iconName: string;
-  title: Record<Language, string>;
-  description: Record<Language, string>;
-  count: number;
-}
-
-export type FieldType = 'text' | 'textarea' | 'date' | 'select' | 'number';
-
-export interface FieldOption {
-  value: string;
-  label: Record<Language, string>;
-}
-
-export interface TemplateField {
+export interface JournalEntry {
   id: string;
-  label: Record<Language, string>;
-  placeholder?: Record<Language, string>;
-  helpText?: Record<Language, string>;
-  type: FieldType;
-  options?: FieldOption[];
-  defaultValue?: string;
-  required?: boolean;
+  createdAt: string; // ISO string
+  originalImageUrl: string;
+  stylizedImageUrl: string;
+  prompt: string;
+  note?: string;
+  aspectRatio: AspectRatio;
+  isWatermarked: boolean;
+  year: number;
+  month: number; // 1-12
+  monthLabel: string; // e.g. "September 2026"
+  isFavorite?: boolean;
+  modelUsed?: string;
 }
 
-export interface SenderProfile {
-  fullName: string;
-  street: string;
-  postalCode: string;
-  city: string;
-  phone: string;
-  email: string;
-  birthDate?: string;
-}
-
-export interface RecipientInfo {
-  organization: string;
-  department?: string;
-  contactPerson?: string;
-  street: string;
-  postalCode: string;
-  city: string;
-}
-
-export interface GeneratedDocument {
-  sender: SenderProfile;
-  recipient: RecipientInfo;
-  date: string;
-  place: string;
-  subject: string;
-  salutation: string;
-  paragraphs: string[];
-  closing: string;
-  signName: string;
-  enclosures?: string[];
-}
-
-export interface LetterTemplate {
+export interface PromptHistoryItem {
   id: string;
-  categoryId: CategoryKey;
-  isPremium: boolean;
-  title: Record<Language, string>;
-  shortDescription: Record<Language, string>;
-  bureaucraticTip: Record<Language, string>;
-  defaultRecipient?: Partial<RecipientInfo>;
-  fields: TemplateField[];
-  buildLetter: (
-    answers: Record<string, string>,
-    sender: SenderProfile,
-    recipient: RecipientInfo
-  ) => GeneratedDocument;
+  text: string;
+  lastUsed: string;
+  usageCount: number;
+  category?: 'cinematic' | 'painting' | 'vintage' | 'digital' | 'analog' | 'custom';
+  isFavorite?: boolean;
+}
+
+export type SubscriptionTier = 'free' | 'premium';
+
+export interface UserSubscription {
+  tier: SubscriptionTier;
+  monthlyGenerationsUsed: number;
+  monthlyGenerationsLimit: number; // 3 for free, 9999 for premium
+  billingCycleResetDate: string; // ISO date
+  subscribedAt?: string;
+  planPeriod?: 'monthly' | 'annual';
+}
+
+export type ExportLayout = 'stylized-only' | 'polaroid-card' | 'before-after-diptych';
+
+export interface StylePreset {
+  id: string;
+  name: string;
+  prompt: string;
+  category: 'Cinematic' | 'Painting' | 'Vintage' | 'Digital';
+  icon: string;
+  description: string;
 }

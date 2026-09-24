@@ -1,254 +1,358 @@
 import React, { useState, useEffect } from 'react';
 import {
-  CategoryKey,
-  GeneratedDocument,
-  Language,
-  LetterTemplate,
-  SenderProfile,
+  JournalEntry,
+  PromptHistoryItem,
+  UserSubscription
 } from './types';
-import { Header } from './components/Header';
-import { CategoryList } from './components/CategoryList';
-import { TemplateSelector } from './components/TemplateSelector';
-import { LetterWizard } from './components/LetterWizard';
-import { LetterPreview } from './components/LetterPreview';
-import { SenderProfileModal } from './components/SenderProfileModal';
-import { PremiumModal } from './components/PremiumModal';
-import { PremiumComingSoonModal } from './components/PremiumComingSoonModal';
-import { TipsModal } from './components/TipsModal';
-import { ShieldCheck, Heart, FileText, Send, Sparkles } from 'lucide-react';
+import {
+  loadJournalEntries,
+  saveJournalEntry,
+  deleteJournalEntry,
+  loadPromptHistory,
+  recordUsedPrompt,
+  savePromptHistory,
+  loadUserSubscription,
+  saveUserSubscription,
+  incrementGenerationCount
+} from './utils/storage';
+import { HeaderBar } from './components/HeaderBar';
+import { BottomTabBar, TabId } from './components/BottomTabBar';
+import { TimelineFeed } from './components/TimelineFeed';
+import { UploadScreen } from './components/UploadScreen';
+import { PromptVault } from './components/PromptVault';
+import { SettingsScreen } from './components/SettingsScreen';
+import { ExportModal } from './components/ExportModal';
+import { SubscriptionModal } from './components/SubscriptionModal';
+import { EntryDetailModal } from './components/EntryDetailModal';
+import { PrivacyInfoModal } from './components/PrivacyInfoModal';
+import { QuotaExceededModal } from './components/QuotaExceededModal';
 
-export default function App() {
-  // Language state (default Romanian as requested for Romanian speakers in Germany)
-  const [language, setLanguage] = useState<Language>(() => {
-    try {
-      const saved = localStorage.getItem('alltagshelfer_lang');
-      return saved === 'de' ? 'de' : 'ro';
-    } catch {
-      return 'ro';
-    }
-  });
+export const App: React.FC = () => {
+  // Navigation State
+  const [activeTab, setActiveTab] = useState<TabId>('timeline');
 
-  // Premium state
-  const [isPremium, setIsPremium] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('alltagshelfer_is_premium') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Application Data State
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [promptHistory, setPromptHistory] = useState<PromptHistoryItem[]>([]);
+  const [subscription, setSubscription] = useState<UserSubscription>(loadUserSubscription());
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Saved sender profile
-  const [savedSender, setSavedSender] = useState<SenderProfile>(() => {
-    try {
-      const data = localStorage.getItem('alltagshelfer_sender_profile');
-      if (data) return JSON.parse(data);
-    } catch (e) {
-      console.error(e);
+  // Modals & Navigation Helpers
+  const [selectedEntryForDetail, setSelectedEntryForDetail] = useState<JournalEntry | null>(null);
+  const [selectedEntryForExport, setSelectedEntryForExport] = useState<JournalEntry | null>(null);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState<boolean>(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState<boolean>(false);
+  const [prefilledPrompt, setPrefilledPrompt] = useState<string>('');
+
+  // Initial Load from Persistent Storage
+  useEffect(() => {
+    async function initData() {
+      try {
+        const loadedEntries = await loadJournalEntries();
+        setEntries(loadedEntries);
+        const loadedPrompts = loadPromptHistory();
+        setPromptHistory(loadedPrompts);
+        const loadedSub = loadUserSubscription();
+        setSubscription(loadedSub);
+      } catch (err) {
+        console.error('Initialization error:', err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    return {
-      fullName: '',
-      street: '',
-      postalCode: '',
-      city: '',
-      phone: '',
-      email: '',
+    initData();
+  }, []);
+
+  // Handler: When an artwork generation completes
+  const handleGenerateSuccess = async (entryData: {
+    originalImageUrl: string;
+    stylizedImageUrl: string;
+    prompt: string;
+    note?: string;
+    isWatermarked: boolean;
+  }) => {
+    const now = new Date();
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+    const newEntry: JournalEntry = {
+      id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: now.toISOString(),
+      originalImageUrl: entryData.originalImageUrl,
+      stylizedImageUrl: entryData.stylizedImageUrl,
+      prompt: entryData.prompt,
+      note: entryData.note,
+      aspectRatio: '4:3',
+      isWatermarked: entryData.isWatermarked,
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      monthLabel,
+      isFavorite: false,
+      modelUsed: 'gemini-3.1-flash-image',
     };
-  });
 
-  // Navigation state
-  const [currentView, setCurrentView] = useState<'categories' | 'templates' | 'wizard' | 'preview'>('categories');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<CategoryKey | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<LetterTemplate | null>(null);
-  const [generatedDoc, setGeneratedDoc] = useState<GeneratedDocument | null>(null);
+    // Save to database
+    await saveJournalEntry(newEntry);
+    setEntries((prev) => [newEntry, ...prev]);
 
-  // Modals
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-  const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
-  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(false);
-  const [selectedPremiumCategoryName, setSelectedPremiumCategoryName] = useState<string | undefined>(undefined);
+    // Record prompt into vault
+    const updatedPrompts = recordUsedPrompt(entryData.prompt);
+    setPromptHistory(updatedPrompts);
 
-  const handleOpenComingSoon = (categoryName?: string) => {
-    setSelectedPremiumCategoryName(categoryName);
-    setIsComingSoonModalOpen(true);
-  };
+    // Increment generation count
+    const updatedSub = incrementGenerationCount();
+    setSubscription(updatedSub);
 
-  // Persist language change
-  const handleLanguageChange = (lang: Language) => {
-    setLanguage(lang);
-    try {
-      localStorage.setItem('alltagshelfer_lang', lang);
-    } catch {}
-  };
+    // If user has reached their free quota limit, show the upsell modal
+    if (updatedSub.tier === 'free' && updatedSub.monthlyGenerationsUsed >= updatedSub.monthlyGenerationsLimit) {
+      setTimeout(() => {
+        setIsQuotaModalOpen(true);
+      }, 900);
+    }
 
-  // Toggle Premium
-  const handleTogglePremium = () => {
-    const next = !isPremium;
-    setIsPremium(next);
-    try {
-      localStorage.setItem('alltagshelfer_is_premium', String(next));
-    } catch {}
-  };
-
-  // Save sender profile
-  const handleSaveSender = (profile: SenderProfile) => {
-    setSavedSender(profile);
-    try {
-      localStorage.setItem('alltagshelfer_sender_profile', JSON.stringify(profile));
-    } catch {}
-  };
-
-  // Navigation handlers
-  const handleSelectCategory = (catId: CategoryKey) => {
-    setSelectedCategoryId(catId);
-    setCurrentView('templates');
+    // Clear prefilled prompt and switch to timeline
+    setPrefilledPrompt('');
+    setActiveTab('timeline');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSelectTemplate = (template: LetterTemplate) => {
-    setSelectedTemplate(template);
-    setCurrentView('wizard');
+  // Handler: Reuse Prompt in Creator
+  const handleReusePrompt = (promptText: string) => {
+    setPrefilledPrompt(promptText);
+    setActiveTab('upload');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDocumentGenerated = (doc: GeneratedDocument) => {
-    setGeneratedDoc(doc);
-    setCurrentView('preview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Handler: Delete an entry
+  const handleDeleteEntry = async (id: string) => {
+    await deleteJournalEntry(id);
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    if (selectedEntryForDetail?.id === id) {
+      setSelectedEntryForDetail(null);
+    }
   };
 
-  const handleResetToHome = () => {
-    setCurrentView('categories');
-    setSelectedCategoryId(null);
-    setSelectedTemplate(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Handler: Update Subscription (Upgrade / Downgrade)
+  const handleUpdateSubscription = (updated: UserSubscription) => {
+    saveUserSubscription(updated);
+    setSubscription(updated);
+  };
+
+  // Handler: Toggle Subscription Tier (Quick testing switcher)
+  const handleToggleSubscriptionTier = () => {
+    if (subscription.tier === 'premium') {
+      handleUpdateSubscription({
+        ...subscription,
+        tier: 'free',
+        monthlyGenerationsLimit: 3,
+        monthlyGenerationsUsed: 1,
+      });
+    } else {
+      handleUpdateSubscription({
+        ...subscription,
+        tier: 'premium',
+        monthlyGenerationsLimit: 9999,
+        subscribedAt: new Date().toISOString(),
+      });
+    }
+  };
+
+  // Handler: Toggle prompt favorite
+  const handleToggleFavoritePrompt = (promptId: string) => {
+    const updated = promptHistory.map((p) =>
+      p.id === promptId ? { ...p, isFavorite: !p.isFavorite } : p
+    );
+    savePromptHistory(updated);
+    setPromptHistory(updated);
+  };
+
+  // Handler: Delete prompt
+  const handleDeletePrompt = (promptId: string) => {
+    const updated = promptHistory.filter((p) => p.id !== promptId);
+    savePromptHistory(updated);
+    setPromptHistory(updated);
+  };
+
+  // Handler: Reset sample data
+  const handleResetData = async () => {
+    localStorage.removeItem('muse_entries_fallback');
+    localStorage.removeItem('muse_prompt_history_v1');
+    localStorage.removeItem('muse_user_subscription_v1');
+    window.location.reload();
+  };
+
+  // Handler: Export all journal metadata
+  const handleExportAllData = () => {
+    const backupData = {
+      app: 'Muse – Private AI Photo Journal',
+      exportDate: new Date().toISOString(),
+      totalEntries: entries.length,
+      entries: entries.map((e) => ({
+        id: e.id,
+        createdAt: e.createdAt,
+        prompt: e.prompt,
+        note: e.note,
+        monthLabel: e.monthLabel,
+        isWatermarked: e.isWatermarked,
+      })),
+      promptHistory,
+      subscription,
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `muse_journal_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
-      {/* Header */}
-      <Header
-        language={language}
-        onLanguageChange={handleLanguageChange}
-        isPremium={isPremium}
-        onOpenPremiumModal={() => handleOpenComingSoon()}
-        onOpenProfileModal={() => setIsProfileModalOpen(true)}
-        onResetToHome={handleResetToHome}
-      />
+    <div className="min-h-screen bg-[#0d0d0f] flex justify-center text-zinc-100 antialiased selection:bg-amber-500/20 selection:text-amber-200">
+      {/* Mobile Shell Container (Max 430px, centered on desktop) */}
+      <div className="w-full max-w-md min-h-screen bg-[#121214] flex flex-col relative shadow-2xl border-x border-zinc-900">
+        {/* Header App Bar */}
+        <HeaderBar
+          subscription={subscription}
+          onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+          onOpenQuotaModal={() => setIsQuotaModalOpen(true)}
+          onOpenPrivacyInfo={() => setIsPrivacyModalOpen(true)}
+        />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {currentView === 'categories' && (
-          <CategoryList
-            language={language}
-            onSelectCategory={handleSelectCategory}
-            onOpenTips={() => setIsTipsModalOpen(true)}
-            onOpenPremiumComingSoon={handleOpenComingSoon}
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col overflow-x-hidden">
+          {isLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-3">
+              <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-zinc-500 font-editorial italic">
+                Opening private journal...
+              </span>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'timeline' && (
+                <TimelineFeed
+                  entries={entries}
+                  userTier={subscription.tier}
+                  onExport={(entry) => setSelectedEntryForExport(entry)}
+                  onSelect={(entry) => setSelectedEntryForDetail(entry)}
+                  onReusePrompt={handleReusePrompt}
+                  onDelete={handleDeleteEntry}
+                  onNavigateToUpload={() => setActiveTab('upload')}
+                  onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
+                />
+              )}
+
+              {activeTab === 'upload' && (
+                <UploadScreen
+                  subscription={subscription}
+                  promptHistory={promptHistory}
+                  prefilledPrompt={prefilledPrompt}
+                  onGenerateSuccess={handleGenerateSuccess}
+                  onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
+                  onOpenQuotaModal={() => setIsQuotaModalOpen(true)}
+                  onClearPrefilledPrompt={() => setPrefilledPrompt('')}
+                />
+              )}
+
+              {activeTab === 'prompts' && (
+                <PromptVault
+                  prompts={promptHistory}
+                  userTier={subscription.tier}
+                  onUsePrompt={handleReusePrompt}
+                  onToggleFavorite={handleToggleFavoritePrompt}
+                  onDeletePrompt={handleDeletePrompt}
+                  onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
+                />
+              )}
+
+              {activeTab === 'settings' && (
+                <SettingsScreen
+                  subscription={subscription}
+                  entriesCount={entries.length}
+                  onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
+                  onResetData={handleResetData}
+                  onExportAllData={handleExportAllData}
+                  onToggleSubscriptionTier={handleToggleSubscriptionTier}
+                  onUpdateSubscription={handleUpdateSubscription}
+                />
+              )}
+            </>
+          )}
+        </main>
+
+        {/* Fixed Mobile Bottom Tab Bar */}
+        <BottomTabBar
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          isPro={subscription.tier === 'premium'}
+        />
+
+        {/* High-Res Export Modal */}
+        {selectedEntryForExport && (
+          <ExportModal
+            entry={selectedEntryForExport}
+            userTier={subscription.tier}
+            onClose={() => setSelectedEntryForExport(null)}
+            onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
           />
         )}
 
-        {currentView === 'templates' && selectedCategoryId && (
-          <TemplateSelector
-            categoryId={selectedCategoryId}
-            language={language}
-            isPremium={isPremium}
-            onSelectTemplate={handleSelectTemplate}
-            onBack={() => setCurrentView('categories')}
-            onOpenPremiumModal={() => handleOpenComingSoon()}
+        {/* Fullscreen Photo Detail Modal */}
+        {selectedEntryForDetail && (
+          <EntryDetailModal
+            entry={selectedEntryForDetail}
+            userTier={subscription.tier}
+            onClose={() => setSelectedEntryForDetail(null)}
+            onExport={(entry) => setSelectedEntryForExport(entry)}
+            onReusePrompt={handleReusePrompt}
+            onDelete={handleDeleteEntry}
+            onOpenUpgradeModal={() => setIsSubscriptionModalOpen(true)}
           />
         )}
 
-        {currentView === 'wizard' && selectedTemplate && (
-          <LetterWizard
-            template={selectedTemplate}
-            language={language}
-            savedSender={savedSender}
-            onSaveSender={handleSaveSender}
-            onGenerate={handleDocumentGenerated}
-            onBack={() => setCurrentView('templates')}
+        {/* Subscription / Paywall Modal */}
+        {isSubscriptionModalOpen && (
+          <SubscriptionModal
+            subscription={subscription}
+            onUpdateSubscription={handleUpdateSubscription}
+            onClose={() => setIsSubscriptionModalOpen(false)}
           />
         )}
 
-        {currentView === 'preview' && generatedDoc && selectedTemplate && (
-          <LetterPreview
-            document={generatedDoc}
-            template={selectedTemplate}
-            language={language}
-            isPremium={isPremium}
-            onBackToEdit={() => setCurrentView('wizard')}
-            onOpenPremiumModal={() => handleOpenComingSoon()}
+        {/* Out of Free Generations Upsell Modal */}
+        {isQuotaModalOpen && (
+          <QuotaExceededModal
+            usedGenerations={subscription.monthlyGenerationsUsed}
+            totalLimit={subscription.monthlyGenerationsLimit}
+            onClose={() => setIsQuotaModalOpen(false)}
+            onNavigateToPlan={() => {
+              setIsQuotaModalOpen(false);
+              setActiveTab('settings');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
-      </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200/80 bg-white py-8 px-4 sm:px-6 no-print">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-center sm:text-left">
-          <div className="space-y-1">
-            <p className="font-semibold text-slate-700">
-              AlltagsHelfer Deutschland © {new Date().getFullYear()}
-            </p>
-            <p className="max-w-md text-[11px] leading-relaxed">
-              {language === 'ro'
-                ? 'Creat special pentru comunitatea românească din Germania. Modele administrative standard conform DIN 5008.'
-                : 'Erstellt für den alltäglichen bürokratischen Schriftverkehr in Deutschland gemäß DIN 5008.'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4 text-xs">
-            <button
-              onClick={() => setIsTipsModalOpen(true)}
-              className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
-            >
-              {language === 'ro' ? 'Ghid poștal & termene' : 'Post-Ratgeber'}
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsProfileModalOpen(true)}
-              className="text-slate-600 hover:text-slate-800 font-medium cursor-pointer"
-            >
-              {language === 'ro' ? 'Profil expeditor' : 'Absenderprofil'}
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => handleOpenComingSoon()}
-              className="text-amber-600 hover:text-amber-700 font-bold cursor-pointer"
-            >
-              {language === 'ro' ? '⭐ Premium 4,99 €' : '⭐ Premium 4,99 €'}
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      {/* Modals */}
-      <SenderProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        language={language}
-        initialProfile={savedSender}
-        onSave={handleSaveSender}
-      />
-
-      <PremiumModal
-        isOpen={isPremiumModalOpen}
-        onClose={() => setIsPremiumModalOpen(false)}
-        language={language}
-        isPremium={isPremium}
-        onTogglePremium={handleTogglePremium}
-      />
-
-      <PremiumComingSoonModal
-        isOpen={isComingSoonModalOpen}
-        onClose={() => setIsComingSoonModalOpen(false)}
-        language={language}
-        selectedCategoryName={selectedPremiumCategoryName}
-      />
-
-      <TipsModal
-        isOpen={isTipsModalOpen}
-        onClose={() => setIsTipsModalOpen(false)}
-        language={language}
-      />
+        {/* Privacy Assurance Modal */}
+        {isPrivacyModalOpen && (
+          <PrivacyInfoModal onClose={() => setIsPrivacyModalOpen(false)} />
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default App;
